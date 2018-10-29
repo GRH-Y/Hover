@@ -36,13 +36,17 @@ public class Hover {
     private Hover() {
     }
 
-
-    public void init(Context context) {
+    public void init(Context context, int thread) {
         HoverCacheManger.getInstance().init(context);
         HoverTaskAllocationManger taskAllocationManger = HoverTaskAllocationManger.getInstance();
-        taskAllocationManger.addExecutor(new HoverImageLoadTask());
-        taskAllocationManger.addExecutor(new HoverImageLoadTask());
+        for (int count = 0; count < thread; count++) {
+            taskAllocationManger.addExecutor(new HoverImageLoadTask());
+        }
         taskAllocationManger.startLoad();
+    }
+
+    public void init(Context context) {
+        init(context, 2);
     }
 
     public void setTimeout(int timeout) {
