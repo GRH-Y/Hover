@@ -11,13 +11,14 @@ import com.yyz.hover.joggle.IHoverLoadHandleListener;
 import com.yyz.hover.joggle.IHoverLoadResultListener;
 import com.yyz.hover.entity.HoverLoadImageEntity;
 
+import java.io.File;
+
 /**
  * 简易加载图片工具类
  * Created by prolog on 5/11/2017.
  *
  * @author yyz
  */
-@Keep
 public class Hover {
 
     private volatile static Hover util = null;
@@ -84,6 +85,10 @@ public class Hover {
      */
     public boolean isHasLoad(String path) {
         return HoverCacheManger.getInstance().isHasLoad(path);
+    }
+
+    public File isHasDisk(String path) {
+        return HoverCacheManger.getInstance().isHasDisk(path);
     }
 
     public Bitmap getCacheBitmap(String path) {

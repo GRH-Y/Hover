@@ -12,7 +12,7 @@ import java.io.File;
 import java.io.IOException;
 
 import storage.FileHelper;
-import util.Logcat;
+import util.LogDog;
 
 public class HoverCacheManger {
 
@@ -60,7 +60,7 @@ public class HoverCacheManger {
             }
             if (!exists) {
                 mAppCacheDir = null;
-                Logcat.e("Cache file creation failed !!!");
+                LogDog.e("Cache file creation failed !!!");
             }
         }
     }
@@ -134,6 +134,18 @@ public class HoverCacheManger {
                 }
             }
         }
+    }
+
+    protected File isHasDisk(String path) {
+        File isHas = null;
+        String key = getUrlBase64(path.getBytes());
+        if (key == null) {
+            return isHas;
+        }
+        if (mAppCacheDir != null && mAppCacheDir.exists() && mAppCacheDir.isDirectory()) {
+            isHas = new File(mAppCacheDir, key);
+        }
+        return isHas;
     }
 
     protected boolean isHasLoad(String path) {
