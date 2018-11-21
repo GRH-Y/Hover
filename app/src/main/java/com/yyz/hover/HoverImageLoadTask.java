@@ -28,8 +28,8 @@ public class HoverImageLoadTask extends BaseLoopTask {
     private int timeout = 3000;
 
 
-    private static final String TAG_HTTP = "http";
-    private static final String TAG_FILE = "file://";
+    public static final String TAG_HTTP = "http";
+    public static final String TAG_FILE = "file://";
 
 
     protected HoverImageLoadTask() {
@@ -79,9 +79,10 @@ public class HoverImageLoadTask extends BaseLoopTask {
         try {
             URL url = new URL(entity.path);
             connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestProperty("Connection", "close");
             connection.setConnectTimeout(timeout);
             connection.setReadTimeout(timeout);
-            InputStream is = url.openStream();
+            InputStream is = connection.getInputStream();
             entity.imageData = IoUtils.tryRead(is);
         } catch (Throwable e) {
             entity.imageData = null;
@@ -128,10 +129,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
         if (entity.path != null) {
             key = HoverCacheManger.getInstance().getUrlBase64(entity.path.getBytes());
         }
-        if (key == null && entity.imageData != null) {
-            key = HoverCacheManger.getInstance().getUrlBase64(entity.imageData);
-        }
-        if (key == null) {
+        if (key == null && entity.imageData == null) {
             //显示错误rid图片
             sendHandlerMsg(entity);
             return;
@@ -139,31 +137,15 @@ public class HoverImageLoadTask extends BaseLoopTask {
 
         //如果没有控件则只进行下载
         if (entity.view == null) {
-            if (entity.path != null && entity.path.startsWith(TAG_HTTP)) {
-                downloadImage(entity);
-                HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
-            } else if (entity.path != null && entity.path.startsWith(TAG_FILE)) {
-                if (entity.path.length() < 8) {
-                    return;
-                }
-                String filePath = entity.path.substring(7);
-                File file = new File(filePath);
-                if (file.exists()) {
-                    try {
-                        entity.imageData = FileHelper.readFile(filePath);
-                    } catch (Throwable e) {
-                        entity.imageData = null;
-                        e.printStackTrace();
-                    }
-                }
-            }
+            downloadImage(entity);
+            HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
             sendHandlerMsg(entity);
             return;
         }
 
         //获取控件的大小
         HoverEntityImageSize imageSize = getImageViewWidth(entity.view);
-        if (entity.loadPolicy == null) {
+        if (entity.loadPolicy == null && key != null) {
             entity.loadPolicy = HoverLoadPolicy.CACHE_OR_NET;
         }
 
@@ -182,7 +164,8 @@ public class HoverImageLoadTask extends BaseLoopTask {
             if (entity.image != null) {
                 sendHandlerMsg(entity);
             }
-            if (HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.image != null || HoverLoadPolicy.ONLY_CACHE == entity.loadPolicy) {
+            if (HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.image != null
+                    || HoverLoadPolicy.ONLY_CACHE == entity.loadPolicy) {
                 return;
             }
         }
@@ -200,11 +183,13 @@ public class HoverImageLoadTask extends BaseLoopTask {
                 entity.image = entity.handleListener.onHandle(entity.view, entity.image);
             }
 
-            //保存到缓存中
-            HoverCacheManger.getInstance().addBitmapToCache(key, entity.image);
+            if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
+                //保存到缓存中
+                HoverCacheManger.getInstance().addBitmapToCache(key, entity.image);
 
-            //持久化保存
-            HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
+                //持久化保存
+                HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
+            }
 
         } else if (entity.path != null && entity.path.startsWith(TAG_FILE)) {
             loadLocalFile(entity, imageSize);
@@ -214,6 +199,12 @@ public class HoverImageLoadTask extends BaseLoopTask {
             }
             //保存到缓存中
             HoverCacheManger.getInstance().addBitmapToCache(key, entity.image);
+        } else if (entity.imageData != null) {
+            //显示byte[] 图片
+            entity.image = HoverBitmapHelper.decodeBitmap(entity.imageData, imageSize.width, imageSize.height);
+            if (entity.handleListener != null) {
+                entity.image = entity.handleListener.onHandle(entity.view, entity.image);
+            }
         }
         sendHandlerMsg(entity);
     }

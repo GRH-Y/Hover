@@ -3,6 +3,8 @@ package com.yyz.hover;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.Keep;
 import android.widget.ImageView;
@@ -12,6 +14,8 @@ import com.yyz.hover.joggle.IHoverLoadResultListener;
 import com.yyz.hover.entity.HoverLoadImageEntity;
 
 import java.io.File;
+
+import util.LogDog;
 
 /**
  * 简易加载图片工具类
@@ -103,6 +107,7 @@ public class Hover {
         return HoverBitmapHelper.isBigBitmap(bitmapData);
     }
 
+    // -----------------------------loadImage ------------------------------------------------------
 
     public void loadImage(byte[] data, ImageView view) {
         loadImage(data, 0, view);
@@ -118,13 +123,7 @@ public class Hover {
 
     public void loadImage(byte[] data, @DrawableRes int errorImageRid, ImageView view, IHoverLoadHandleListener handleListener,
                           IHoverLoadResultListener resultListener) {
-        HoverLoadImageEntity entity = new HoverLoadImageEntity();
-        entity.imageData = data;
-        entity.view = view;
-        entity.errorImageRid = errorImageRid;
-        entity.handleListener = handleListener;
-        entity.resultListener = resultListener;
-        HoverTaskAllocationManger.getInstance().submitTask(entity);
+        loadImage(data, null, errorImageRid, view, null, handleListener, resultListener);
     }
 
     public byte[] downloadSyncImage(String path) {
@@ -177,8 +176,29 @@ public class Hover {
                           HoverLoadPolicy networkPolicy, IHoverLoadHandleListener handleListener,
                           IHoverLoadResultListener resultListener) {
 
+        loadImage(null, path, errorImageRid, view, networkPolicy, handleListener, resultListener);
+    }
+
+    private void loadImage(byte[] data, String path, @DrawableRes int errorImageRid, ImageView view,
+                           HoverLoadPolicy networkPolicy, IHoverLoadHandleListener handleListener,
+                           IHoverLoadResultListener resultListener) {
+
+        if ((data == null && path == null) || (data != null && view == null)) {
+            LogDog.e("==> loadImage() data or path Can't be empty ! ");
+            return;
+        }
+
+        if (!path.startsWith(HoverImageLoadTask.TAG_HTTP) && !path.startsWith(HoverImageLoadTask.TAG_FILE)) {
+            LogDog.e("==> loadImage path illegal address ! " + path);
+            return;
+        }
+
         HoverLoadImageEntity entity = new HoverLoadImageEntity();
-        entity.path = path;
+        if (path == null) {
+            entity.imageData = data;
+        } else {
+            entity.path = path;
+        }
         entity.view = view;
         entity.loadPolicy = networkPolicy;
         entity.errorImageRid = errorImageRid;
