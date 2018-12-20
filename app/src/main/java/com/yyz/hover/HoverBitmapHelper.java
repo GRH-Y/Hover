@@ -22,7 +22,6 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.support.annotation.Keep;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;

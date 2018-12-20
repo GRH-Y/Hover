@@ -1,6 +1,7 @@
 package com.yyz.hover;
 
 
+import android.os.Message;
 import android.util.DisplayMetrics;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -50,30 +51,8 @@ public class HoverImageLoadTask extends BaseLoopTask {
         }
     }
 
-    public byte[] downloadSyncImage(String path) {
-        HttpURLConnection connection = null;
-        byte[] data;
-        try {
-            URL url = new URL(path);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(timeout);
-            connection.setReadTimeout(timeout);
-            InputStream is = url.openStream();
-            data = IoUtils.tryRead(is);
-        } catch (Throwable e) {
-            data = null;
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-        return data;
-    }
 
-    //---------------------------------------------------------------------------------
-
-    private byte[] downloadImage(String path) {
+    public byte[] downloadImage(String path) {
         HttpURLConnection connection = null;
         byte[] data = null;
         try {
@@ -93,6 +72,8 @@ public class HoverImageLoadTask extends BaseLoopTask {
         return data;
     }
 
+    //---------------------------------------------------------------------------------
+
     private void loadLocalFile(HoverLoadImageEntity entity, HoverEntityImageSize imageSize) {
         if (entity.path.length() < 8) {
             return;
@@ -110,7 +91,9 @@ public class HoverImageLoadTask extends BaseLoopTask {
     }
 
     private void sendHandlerMsg(HoverLoadImageEntity entity) {
-        HoverUIRefreshHandler.getInstance().pushData(entity);
+        Message msg = Message.obtain();
+        msg.obj = entity;
+        HoverUIRefreshHandler.getInstance().sendMessage(msg);
     }
 
 

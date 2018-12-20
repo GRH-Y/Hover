@@ -45,7 +45,7 @@ public class HoverTaskAllocationManger {
 
     protected byte[] downloadSyncImage(String path) {
         if (mExecutorList.size() > 0) {
-            return mExecutorList.get(0).downloadSyncImage(path);
+            return mExecutorList.get(0).downloadImage(path);
         }
         return null;
     }
