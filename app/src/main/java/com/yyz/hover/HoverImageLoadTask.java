@@ -149,11 +149,11 @@ public class HoverImageLoadTask extends BaseLoopTask {
         if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
             //获取缓存数据
             entity.bitmap = HoverCacheManger.getInstance().getBitmapFromCache(key);
+            entity.imageData = HoverCacheManger.getInstance().getBitmapForByte(key);
             if (entity.bitmap == null) {
                 String path = HoverCacheManger.getInstance().getBitmapFromFile(key);
                 if (path != null) {
                     entity.bitmap = HoverBitmapHelper.decodeBitmap(path, imageSize.width, imageSize.height);
-                    entity.imageData = HoverCacheManger.getInstance().getBitmapForByte(key);
                 }
             }
             if (entity.bitmap != null) {
