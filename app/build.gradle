@@ -7,11 +7,11 @@ android {
     compileSdkVersion 28
     defaultConfig {
 //        applicationId "com.yyz.hover"
-//        minSdkVersion 15
+        minSdkVersion 15
 //        targetSdkVersion 28
         versionCode 2
         versionName "2.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+//        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         beta {
@@ -40,10 +40,27 @@ android {
 
 }
 
-
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:28.0.0'
     implementation files('libs/CurrencyThreadTask.jar')
     implementation files('libs/JavaUtils.jar')
 }
+
+//打jar包
+task makeJar(type: Copy) {
+    delete 'build/jarLibs/Hover_v2.jar'
+    from('build/intermediates/packaged-classes/debug/')
+    into('build/jarLibs/')
+    include('classes.jar')
+    rename('classes.jar', 'Hover_v2.jar')
+}
+
+
+task clearJar(type: Delete) {
+    delete 'build/jarLibs/' + 'Hover_v2.jar'
+}
+
+makeJar.dependsOn(clearJar, build)
+
+//unzip -l Hover_v2.jar | grep "BuildConfig.class" | awk '{printf $4}' | xargs -I {} zip -d Hover_v2.jar {}

@@ -85,9 +85,7 @@ public class HoverCacheManger {
         if (key == null || bitmap == null || mLruCache == null) {
             return;
         }
-        if (getBitmapFromCache(key) == null) {
-            mLruCache.put(key, bitmap);
-        }
+        mLruCache.put(key, bitmap);
     }
 
     protected void saveImageToFile(String key, byte[] bitmap) {

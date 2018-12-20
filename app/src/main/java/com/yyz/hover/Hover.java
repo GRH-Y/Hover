@@ -3,15 +3,12 @@ package com.yyz.hover;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.support.annotation.DrawableRes;
-import android.support.annotation.Keep;
 import android.widget.ImageView;
 
+import com.yyz.hover.entity.HoverLoadImageEntity;
 import com.yyz.hover.joggle.IHoverLoadHandleListener;
 import com.yyz.hover.joggle.IHoverLoadResultListener;
-import com.yyz.hover.entity.HoverLoadImageEntity;
 
 import java.io.File;
 

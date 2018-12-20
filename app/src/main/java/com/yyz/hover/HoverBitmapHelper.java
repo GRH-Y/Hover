@@ -43,7 +43,6 @@ import storage.FileHelper;
  * @author: DANIEL DENG
  * @createTime: 2013-3-5
  */
-@Keep
 public class HoverBitmapHelper {
 
     public static final int MAX_BITMAP_SIZE = 4096;
@@ -440,7 +439,7 @@ public class HoverBitmapHelper {
         try {
             // 可以在这里通过文件名来判断，是否本地有此图片
             drawable = Drawable.createFromStream(
-                    new URL(imageUrl).openStream(), "image.jpg");
+                    new URL(imageUrl).openStream(), "bitmap.jpg");
         } catch (IOException e) {
             e.printStackTrace();
         }

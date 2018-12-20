@@ -16,7 +16,6 @@ import android.support.annotation.Keep;
  * @author: liguoliang
  * @createTime: 2018/7/17
  */
-@Keep
 public class HoverBitmapFillet {
 
     public static final int CORNER_NONE = 0;

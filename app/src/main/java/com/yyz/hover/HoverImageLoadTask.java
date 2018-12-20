@@ -1,7 +1,6 @@
 package com.yyz.hover;
 
 
-import android.os.Message;
 import android.util.DisplayMetrics;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -14,8 +13,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
 
-import storage.FileHelper;
 import task.executor.BaseLoopTask;
 import task.executor.TaskContainer;
 import task.executor.joggle.ILoopTaskExecutor;
@@ -74,24 +73,24 @@ public class HoverImageLoadTask extends BaseLoopTask {
 
     //---------------------------------------------------------------------------------
 
-    private void downloadImage(HoverLoadImageEntity entity) {
+    private byte[] downloadImage(String path) {
         HttpURLConnection connection = null;
+        byte[] data = null;
         try {
-            URL url = new URL(entity.path);
+            URL url = new URL(path);
             connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestProperty("Connection", "close");
             connection.setConnectTimeout(timeout);
             connection.setReadTimeout(timeout);
             InputStream is = connection.getInputStream();
-            entity.imageData = IoUtils.tryRead(is);
+            data = IoUtils.tryRead(is);
         } catch (Throwable e) {
-            entity.imageData = null;
             e.printStackTrace();
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
+        return data;
     }
 
     private void loadLocalFile(HoverLoadImageEntity entity, HoverEntityImageSize imageSize) {
@@ -102,7 +101,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
         File file = new File(filePath);
         if (file.exists()) {
             try {
-                entity.image = HoverBitmapHelper.decodeBitmap(filePath, imageSize.width, imageSize.height);
+                entity.bitmap = HoverBitmapHelper.decodeBitmap(filePath, imageSize.width, imageSize.height);
             } catch (Throwable e) {
                 entity.imageData = null;
                 e.printStackTrace();
@@ -111,9 +110,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
     }
 
     private void sendHandlerMsg(HoverLoadImageEntity entity) {
-        Message msg = Message.obtain();
-        msg.obj = entity;
-        HoverUIRefreshHandler.getInstance().sendMessage(msg);
+        HoverUIRefreshHandler.getInstance().pushData(entity);
     }
 
 
@@ -137,7 +134,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
 
         //如果没有控件则只进行下载
         if (entity.view == null) {
-            downloadImage(entity);
+            entity.imageData = downloadImage(entity.path);
             HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
             sendHandlerMsg(entity);
             return;
@@ -146,67 +143,69 @@ public class HoverImageLoadTask extends BaseLoopTask {
         //获取控件的大小
         HoverEntityImageSize imageSize = getImageViewWidth(entity.view);
         if (entity.loadPolicy == null && key != null) {
-            entity.loadPolicy = HoverLoadPolicy.CACHE_OR_NET;
+            entity.loadPolicy = HoverLoadPolicy.ALL;
         }
 
         if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
             //获取缓存数据
-            entity.image = HoverCacheManger.getInstance().getBitmapFromCache(key);
-            if (entity.image == null) {
+            entity.bitmap = HoverCacheManger.getInstance().getBitmapFromCache(key);
+            if (entity.bitmap == null) {
                 String path = HoverCacheManger.getInstance().getBitmapFromFile(key);
                 if (path != null) {
-                    entity.image = HoverBitmapHelper.decodeBitmap(path, imageSize.width, imageSize.height);
-                    if (entity.image != null) {
-                        HoverCacheManger.getInstance().addBitmapToCache(key, entity.image);
-                    }
+                    entity.bitmap = HoverBitmapHelper.decodeBitmap(path, imageSize.width, imageSize.height);
+                    entity.imageData = HoverCacheManger.getInstance().getBitmapForByte(key);
                 }
             }
-            if (entity.image != null) {
+            if (entity.bitmap != null) {
                 sendHandlerMsg(entity);
             }
-            if (HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.image != null
+            if (HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.bitmap != null
                     || HoverLoadPolicy.ONLY_CACHE == entity.loadPolicy) {
                 return;
             }
         }
 
+        boolean isNeedSendMeg = true;
         if (entity.path != null && entity.path.startsWith(TAG_HTTP)) {
-            downloadImage(entity);
+            byte[] downloadData = downloadImage(entity.path);
             //如果下载图片失败
-            if (entity.imageData == null) {
+            if (downloadData == null && entity.loadPolicy == HoverLoadPolicy.ONLY_NET ||
+                    entity.loadPolicy == HoverLoadPolicy.CACHE_OR_NET) {
                 sendHandlerMsg(entity);
                 return;
             }
-            entity.image = HoverBitmapHelper.decodeBitmap(entity.imageData, imageSize.width, imageSize.height);
-
-            if (entity.handleListener != null) {
-                entity.image = entity.handleListener.onHandle(entity.view, entity.image);
+            if (entity.imageData != null && Arrays.equals(downloadData, entity.imageData)) {
+                isNeedSendMeg = false;
+            } else {
+                entity.imageData = downloadData;
+                entity.bitmap = HoverBitmapHelper.decodeBitmap(entity.imageData, imageSize.width, imageSize.height);
+                if (entity.handleListener != null) {
+                    entity.bitmap = entity.handleListener.onHandle(entity.view, entity.bitmap);
+                }
+                if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
+                    //保存到缓存中
+                    HoverCacheManger.getInstance().addBitmapToCache(key, entity.bitmap);
+                    //持久化保存
+                    HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
+                }
             }
-
-            if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
-                //保存到缓存中
-                HoverCacheManger.getInstance().addBitmapToCache(key, entity.image);
-
-                //持久化保存
-                HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
-            }
-
         } else if (entity.path != null && entity.path.startsWith(TAG_FILE)) {
             loadLocalFile(entity, imageSize);
-
             if (entity.handleListener != null) {
-                entity.image = entity.handleListener.onHandle(entity.view, entity.image);
+                entity.bitmap = entity.handleListener.onHandle(entity.view, entity.bitmap);
             }
             //保存到缓存中
-            HoverCacheManger.getInstance().addBitmapToCache(key, entity.image);
+            HoverCacheManger.getInstance().addBitmapToCache(key, entity.bitmap);
         } else if (entity.imageData != null) {
             //显示byte[] 图片
-            entity.image = HoverBitmapHelper.decodeBitmap(entity.imageData, imageSize.width, imageSize.height);
+            entity.bitmap = HoverBitmapHelper.decodeBitmap(entity.imageData, imageSize.width, imageSize.height);
             if (entity.handleListener != null) {
-                entity.image = entity.handleListener.onHandle(entity.view, entity.image);
+                entity.bitmap = entity.handleListener.onHandle(entity.view, entity.bitmap);
             }
         }
-        sendHandlerMsg(entity);
+        if (isNeedSendMeg) {
+            sendHandlerMsg(entity);
+        }
     }
 
 
@@ -221,7 +220,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
         DisplayMetrics displayMetrics = imageView.getContext().getResources().getDisplayMetrics();
         ViewGroup.LayoutParams params = imageView.getLayoutParams();
 
-        // Get actual image width
+        // Get actual bitmap width
         int width = params.width == ViewGroup.LayoutParams.WRAP_CONTENT ? 0 : imageView.getWidth();
         if (width <= 0) {
             // Get layout width parameter
@@ -235,7 +234,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
         if (width <= 0) {
             width = displayMetrics.widthPixels;
         }
-        // Get actual image height
+        // Get actual bitmap height
         int height = params.height == ViewGroup.LayoutParams.WRAP_CONTENT ? 0 : imageView.getHeight();
         if (height <= 0) {
             // Get layout height parameter
