@@ -20,6 +20,7 @@ import task.executor.BaseLoopTask;
 import task.executor.TaskContainer;
 import task.executor.joggle.ILoopTaskExecutor;
 import util.IoUtils;
+import util.SpeedReflex;
 
 public class HoverImageLoadTask extends BaseLoopTask {
 
@@ -158,6 +159,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
                 return;
             }
             if (entity.imageData != null && Arrays.equals(downloadData, entity.imageData)) {
+                //如果图片没有变化则不需要再更新
                 isNeedSendMeg = false;
             } else {
                 entity.imageData = downloadData;
@@ -246,7 +248,8 @@ public class HoverImageLoadTask extends BaseLoopTask {
     private int getImageViewFieldValue(Object object, String fieldName) {
         int value = 0;
         try {
-            Field field = ImageView.class.getDeclaredField(fieldName);
+            SpeedReflex speedReflex = SpeedReflex.getCache();
+            Field field = speedReflex.getField(ImageView.class, fieldName);
             field.setAccessible(true);
             int fieldValue = (Integer) field.get(object);
             if (fieldValue > 0 && fieldValue < Integer.MAX_VALUE) {

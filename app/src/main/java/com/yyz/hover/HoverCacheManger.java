@@ -43,7 +43,7 @@ public class HoverCacheManger {
 
         // 获取应用程序最大可用内存
         long maxMemory = Runtime.getRuntime().maxMemory();
-        int cacheSize = (int) (maxMemory / 5);
+        int cacheSize = (int) (maxMemory / 6);
         mLruCache = new LruCache<String, Bitmap>(cacheSize) {
             @Override
             protected int sizeOf(String key, Bitmap value) {
@@ -51,16 +51,18 @@ public class HoverCacheManger {
             }
         };
 
-        File dir = context.getExternalCacheDir();
-        if (dir != null) {
-            mAppCacheDir = new File(dir, sCachePath);
-            boolean exists = mAppCacheDir.exists();
-            if (!exists) {
-                exists = mAppCacheDir.mkdirs();
-            }
-            if (!exists) {
-                mAppCacheDir = null;
-                LogDog.e("Cache file creation failed !!!");
+        if (context != null) {
+            File dir = context.getExternalCacheDir();
+            if (dir != null) {
+                mAppCacheDir = new File(dir, sCachePath);
+                boolean exists = mAppCacheDir.exists();
+                if (!exists) {
+                    exists = mAppCacheDir.mkdirs();
+                }
+                if (!exists) {
+                    mAppCacheDir = null;
+                    LogDog.e("Cache file creation failed !!!");
+                }
             }
         }
     }
