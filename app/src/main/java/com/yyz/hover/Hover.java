@@ -39,6 +39,7 @@ public class Hover {
     }
 
     public void init(Context context, int thread) {
+        HoverUIRefreshHandler.getInstance();
         HoverCacheManger.getInstance().init(context);
         HoverTaskAllocationManger taskAllocationManger = HoverTaskAllocationManger.getInstance();
         for (int count = 0; count < thread; count++) {
