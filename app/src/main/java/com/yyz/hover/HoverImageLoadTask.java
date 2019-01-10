@@ -153,8 +153,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
         if (entity.path != null && entity.path.startsWith(TAG_HTTP)) {
             byte[] downloadData = downloadImage(entity.path);
             //如果下载图片失败
-            if (downloadData == null && entity.loadPolicy == HoverLoadPolicy.ONLY_NET ||
-                    entity.loadPolicy == HoverLoadPolicy.CACHE_OR_NET) {
+            if (downloadData == null) {
                 sendHandlerMsg(entity);
                 return;
             }
