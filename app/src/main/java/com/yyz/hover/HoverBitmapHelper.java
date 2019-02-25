@@ -44,7 +44,7 @@ import storage.FileHelper;
  */
 public class HoverBitmapHelper {
 
-    public static final int MAX_BITMAP_SIZE = 4096;
+    public static final int MAX_BITMAP_SIZE = 5096;
 
     public static boolean isBigBitmap(byte[] bitmapData) {
         if (bitmapData == null) {

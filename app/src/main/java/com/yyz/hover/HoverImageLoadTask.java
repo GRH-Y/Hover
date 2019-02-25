@@ -178,8 +178,10 @@ public class HoverImageLoadTask extends BaseLoopTask {
             if (entity.handleListener != null) {
                 entity.bitmap = entity.handleListener.onHandle(entity.view, entity.bitmap);
             }
-            //保存到缓存中
-            HoverCacheManger.getInstance().addBitmapToCache(key, entity.bitmap);
+            if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
+                //保存到缓存中
+                HoverCacheManger.getInstance().addBitmapToCache(key, entity.bitmap);
+            }
         } else if (entity.imageData != null) {
             //显示byte[] 图片
             entity.bitmap = HoverBitmapHelper.decodeBitmap(entity.imageData, imageSize.width, imageSize.height);
