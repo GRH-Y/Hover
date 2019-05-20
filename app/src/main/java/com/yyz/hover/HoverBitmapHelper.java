@@ -13,6 +13,7 @@ import android.graphics.BitmapRegionDecoder;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
@@ -22,6 +23,7 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.media.ExifInterface;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -68,6 +70,48 @@ public class HoverBitmapHelper {
         int width = options.outWidth;
         int height = options.outHeight;
         return width > HoverBitmapHelper.MAX_BITMAP_SIZE || height > HoverBitmapHelper.MAX_BITMAP_SIZE;
+    }
+
+    /**
+     * 读取照片exif信息中的旋转角度
+     * @param path 照片路径
+     * @return角度
+     */
+    public static int getPhotoDegree(String path) {
+        int degree = 0;
+        try {
+            ExifInterface exifInterface = new ExifInterface(path);
+            int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    degree = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    degree = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    degree = 270;
+                    break;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return degree;
+    }
+
+    /**
+     * 旋转图片
+     * @param img
+     * @param degree
+     * @return
+     */
+    public static Bitmap rotateBitmap(Bitmap img, int degree) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degree);
+        int width = img.getWidth();
+        int height = img.getHeight();
+        img = Bitmap.createBitmap(img, 0, 0, width, height, matrix, true);
+        return img;
     }
 
     /**

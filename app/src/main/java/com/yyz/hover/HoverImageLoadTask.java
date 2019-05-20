@@ -19,7 +19,7 @@ import java.util.Arrays;
 import task.executor.BaseLoopTask;
 import task.executor.TaskContainer;
 import task.executor.joggle.ILoopTaskExecutor;
-import util.IoUtils;
+import util.IoEnvoy;
 import util.SpeedReflex;
 
 public class HoverImageLoadTask extends BaseLoopTask {
@@ -62,7 +62,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
             connection.setConnectTimeout(timeout);
             connection.setReadTimeout(timeout);
             InputStream is = connection.getInputStream();
-            data = IoUtils.tryRead(is);
+            data = IoEnvoy.tryRead(is);
         } catch (Throwable e) {
             e.printStackTrace();
         } finally {
