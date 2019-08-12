@@ -12,7 +12,9 @@ import com.yyz.hover.joggle.IHoverLoadResultListener;
 
 import java.io.File;
 
-import util.LogDog;
+import log.LogDog;
+import util.StringEnvoy;
+
 
 /**
  * 简易加载图片工具类
@@ -69,6 +71,27 @@ public class Hover {
         HoverTaskAllocationManger.getInstance().destroy();
         HoverTaskAllocationManger.getInstance().clearSubmitTask();
         util = null;
+    }
+
+    public void addImageToCache(String path, Bitmap bitmap) {
+        if (StringEnvoy.isNotEmpty(path) && bitmap != null && !bitmap.isRecycled()) {
+            String key = HoverCacheManger.getInstance().getUrlBase64(path.getBytes());
+            HoverCacheManger.getInstance().addBitmapToCache(key, bitmap);
+        }
+    }
+
+    public void getImageForCache(String path) {
+        if (StringEnvoy.isNotEmpty(path)) {
+            String key = HoverCacheManger.getInstance().getUrlBase64(path.getBytes());
+            HoverCacheManger.getInstance().getBitmapFromCache(key);
+        }
+    }
+
+    public void removerImageForCache(String path) {
+        if (StringEnvoy.isNotEmpty(path)) {
+            String key = HoverCacheManger.getInstance().getUrlBase64(path.getBytes());
+            HoverCacheManger.getInstance().removerForKey(key);
+        }
     }
 
     public void clearCacheImage() {
@@ -134,6 +157,10 @@ public class Hover {
 
     public void downloadImage(String path, IHoverLoadResultListener listener) {
         loadImage(path, 0, null, null, null, listener);
+    }
+
+    public void downloadImage(String path, IHoverLoadResultListener listener, HoverLoadPolicy networkPolicy) {
+        loadImage(path, 0, null, networkPolicy, null, listener);
     }
 
     public void loadImage(String path, ImageView view) {

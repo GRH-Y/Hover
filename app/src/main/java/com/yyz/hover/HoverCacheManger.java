@@ -4,6 +4,7 @@ package com.yyz.hover;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Build;
 import android.util.Base64;
 import android.util.LruCache;
 
@@ -11,8 +12,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
+import log.LogDog;
 import storage.FileHelper;
-import util.LogDog;
+import util.StringEnvoy;
 
 public class HoverCacheManger {
 
@@ -40,13 +42,15 @@ public class HoverCacheManger {
 
 
     public void init(Context context) {
-
         // 获取应用程序最大可用内存
-        long maxMemory = Runtime.getRuntime().maxMemory();
-        int cacheSize = (int) (maxMemory / 6);
+        final long maxMemory = Runtime.getRuntime().maxMemory();
+        final int cacheSize = (int) (maxMemory / 6);
         mLruCache = new LruCache<String, Bitmap>(cacheSize) {
             @Override
             protected int sizeOf(String key, Bitmap value) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    return value.getAllocationByteCount();
+                }
                 return value.getRowBytes() * value.getHeight();
             }
         };
@@ -95,7 +99,7 @@ public class HoverCacheManger {
             return;
         }
         File file = new File(mAppCacheDir, key);
-        FileHelper.writFile(file, bitmap);
+        FileHelper.writeFileMemMap(file, bitmap, false);
     }
 
     protected void saveImageToFile(String key, Bitmap bitmap) {
@@ -104,11 +108,22 @@ public class HoverCacheManger {
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         byte[] processed = stream.toByteArray();
         File file = new File(mAppCacheDir, new String(base64));
-        FileHelper.writFile(file, processed);
+        FileHelper.writeFileMemMap(file, processed, false);
         try {
             stream.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * 根据key移除缓存
+     *
+     * @param key
+     */
+    public void removerForKey(String key) {
+        if (mLruCache != null && StringEnvoy.isNotEmpty(key)) {
+            mLruCache.remove(key);
         }
     }
 
@@ -140,7 +155,7 @@ public class HoverCacheManger {
         File isHas = null;
         String key = getUrlBase64(path.getBytes());
         if (key == null) {
-            return isHas;
+            return null;
         }
         if (mAppCacheDir != null && mAppCacheDir.exists() && mAppCacheDir.isDirectory()) {
             isHas = new File(mAppCacheDir, key);
@@ -149,13 +164,12 @@ public class HoverCacheManger {
     }
 
     protected boolean isHasLoad(String path) {
-        boolean isHas = false;
         String key = getUrlBase64(path.getBytes());
         if (key == null) {
-            return isHas;
+            return false;
         }
         Bitmap bitmap = getBitmapFromCache(key);
-        isHas = bitmap != null;
+        boolean isHas = bitmap != null;
         if (bitmap == null) {
             if (mAppCacheDir != null && mAppCacheDir.exists() && mAppCacheDir.isDirectory()) {
                 File file = new File(mAppCacheDir, key);
@@ -165,6 +179,11 @@ public class HoverCacheManger {
         return isHas;
     }
 
+    /**
+     * 根据路径获取bitmap，先从内存缓存拿，没有则取磁盘获取
+     * @param path 图片路径
+     * @return
+     */
     protected Bitmap getBitmapFromPath(String path) {
         String key = getUrlBase64(path.getBytes());
         Bitmap bitmap = getBitmapFromCache(key);
@@ -172,7 +191,7 @@ public class HoverCacheManger {
             if (mAppCacheDir != null && mAppCacheDir.exists() && mAppCacheDir.isDirectory()) {
                 File file = new File(mAppCacheDir, key);
                 if (file.exists()) {
-                    bitmap = BitmapFactory.decodeFile(file.getName());
+                    bitmap = BitmapFactory.decodeFile(file.getPath());
                 }
             }
         }
@@ -183,7 +202,7 @@ public class HoverCacheManger {
         if (mAppCacheDir != null && mAppCacheDir.exists() && mAppCacheDir.isDirectory()) {
             File file = new File(mAppCacheDir, key);
             if (file.exists()) {
-                return BitmapFactory.decodeFile(file.getName());
+                return BitmapFactory.decodeFile(file.getPath());
             }
         }
         return null;
@@ -193,7 +212,7 @@ public class HoverCacheManger {
         byte[] data = null;
         String filePath = getBitmapFromFile(key);
         if (filePath != null) {
-            data = FileHelper.readFile(filePath);
+            data = FileHelper.readFileMemMap(filePath);
         }
         return data;
     }

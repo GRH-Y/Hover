@@ -5,6 +5,7 @@ import com.yyz.hover.entity.HoverLoadImageEntity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -131,11 +132,11 @@ public class HoverTaskAllocationManger {
 
     protected void submitTask(HoverLoadImageEntity entity) {
         mLock.lock();
-        if (entity.view != null) {
-            mLoadEntityCache.put(entity.view.toString(), entity);
-        } else {
-            mLoadEntityCache.put(entity.path, entity);
-        }
+//        if (entity.view != null) {
+//            mLoadEntityCache.put(entity.view.toString(), entity);
+//        } else {
+        mLoadEntityCache.put(String.valueOf(entity.hashCode()), entity);
+//        }
         try {
             HoverImageLoadTask loadTask = mExecutorList.get(currentIndex);
             loadTask.getExecutor().resumeTask();
@@ -155,9 +156,9 @@ public class HoverTaskAllocationManger {
         HoverLoadImageEntity entity = null;
         mLock.lock();
         try {
-            Object[] array = mLoadEntityCache.keySet().toArray();
-            if (array.length > 0) {
-                String key = array[0].toString();
+            Iterator<String> iterator = mLoadEntityCache.keySet().iterator();
+            if (iterator.hasNext()) {
+                String key = iterator.next();
                 entity = mLoadEntityCache.remove(key);
             }
         } catch (Exception e) {

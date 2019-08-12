@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Arrays;
 
 import task.executor.BaseLoopTask;
 import task.executor.TaskContainer;
@@ -118,9 +117,27 @@ public class HoverImageLoadTask extends BaseLoopTask {
 
         //如果没有控件则只进行下载
         if (entity.view == null) {
-            entity.imageData = downloadImage(entity.path);
-            HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
-            sendHandlerMsg(entity);
+            //获取缓存的图片
+            entity.imageData = HoverCacheManger.getInstance().getBitmapForByte(key);
+            if (entity.imageData != null) {
+                sendHandlerMsg(entity);
+            }
+            //根据策略来决定是否请求网络
+            if ((HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.imageData == null)
+                    || HoverLoadPolicy.ONLY_NET == entity.loadPolicy
+                    || HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy) {
+                //下载图片
+                byte[] download = downloadImage(entity.path);
+                if (entity.imageData != null && entity.imageData.length == download.length) {
+                    //如果下载的图片数据跟缓存的数据大小一致则不需要重新更新缓存和回调
+                    return;
+                }
+
+                entity.imageData = download;
+                HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
+                sendHandlerMsg(entity);
+            }
+
             return;
         }
 
@@ -157,7 +174,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
                 sendHandlerMsg(entity);
                 return;
             }
-            if (entity.imageData != null && Arrays.equals(downloadData, entity.imageData)) {
+            if (entity.imageData != null && downloadData.length == entity.imageData.length) {
                 //如果图片没有变化则不需要再更新
                 isNeedSendMeg = false;
             } else {
