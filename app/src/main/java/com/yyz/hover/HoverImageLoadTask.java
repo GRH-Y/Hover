@@ -15,6 +15,11 @@ import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+
 import task.executor.BaseLoopTask;
 import task.executor.TaskContainer;
 import task.executor.joggle.ILoopTaskExecutor;
@@ -57,7 +62,19 @@ public class HoverImageLoadTask extends BaseLoopTask {
         byte[] data = null;
         try {
             URL url = new URL(path);
-            connection = (HttpURLConnection) url.openConnection();
+            if (path.startsWith("https")) {
+                HttpsURLConnection httpsURLConnection = (HttpsURLConnection) url.openConnection();
+                httpsURLConnection.setHostnameVerifier(new HostnameVerifier() {
+                    @Override
+                    public boolean verify(String hostname, SSLSession session) {
+                        return true;
+                    }
+                });
+                httpsURLConnection.setSSLSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault());
+                connection = httpsURLConnection;
+            } else {
+                connection = (HttpURLConnection) url.openConnection();
+            }
             connection.setConnectTimeout(timeout);
             connection.setReadTimeout(timeout);
             InputStream is = connection.getInputStream();
