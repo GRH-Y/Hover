@@ -254,6 +254,9 @@ public class HoverBitmapHelper {
      * @return
      */
     public static Bitmap getRoundedCornerBitmap(Bitmap sourceBitmap, float roundPx) {
+        if (sourceBitmap == null && roundPx < 0) {
+            return null;
+        }
 
         int width = sourceBitmap.getWidth();
         int height = sourceBitmap.getHeight();
