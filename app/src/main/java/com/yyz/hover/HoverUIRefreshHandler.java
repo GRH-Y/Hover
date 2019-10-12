@@ -2,6 +2,7 @@ package com.yyz.hover;
 
 
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 
 import com.yyz.hover.entity.HoverLoadImageEntity;
@@ -11,6 +12,7 @@ public class HoverUIRefreshHandler extends Handler{
     private static volatile HoverUIRefreshHandler sHandler;
 
     private HoverUIRefreshHandler() {
+        super(Looper.getMainLooper());
     }
 
     public static HoverUIRefreshHandler getInstance() {

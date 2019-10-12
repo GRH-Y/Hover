@@ -123,6 +123,9 @@ public class HoverBitmapHelper {
      * @return
      */
     public static Bitmap decodeBitmap(byte[] data, int reqWidth, int reqHeight) {
+        if (data == null || reqWidth <= 0 || reqHeight <= 0) {
+            return null;
+        }
         // 第一次解析将inJustDecodeBounds设置为true，来获取图片大小
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
