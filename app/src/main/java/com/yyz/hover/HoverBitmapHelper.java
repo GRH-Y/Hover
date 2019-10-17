@@ -61,7 +61,7 @@ public class HoverBitmapHelper {
     }
 
     public static boolean isBigBitmap(String path) {
-        if (path == null) {
+        if (TextUtils.isEmpty(path)) {
             return false;
         }
         BitmapFactory.Options options = new BitmapFactory.Options();
@@ -79,6 +79,9 @@ public class HoverBitmapHelper {
      */
     public static int getPhotoDegree(String path) {
         int degree = 0;
+        if (TextUtils.isEmpty(path)) {
+            return degree;
+        }
         try {
             ExifInterface exifInterface = new ExifInterface(path);
             int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
@@ -106,6 +109,9 @@ public class HoverBitmapHelper {
      * @return
      */
     public static Bitmap rotateBitmap(Bitmap img, int degree) {
+        if (img == null || img.isRecycled() || degree <= 0) {
+            return null;
+        }
         Matrix matrix = new Matrix();
         matrix.postRotate(degree);
         int width = img.getWidth();
@@ -159,6 +165,9 @@ public class HoverBitmapHelper {
     }
 
     public static Bitmap decodeBitmap(String pathName, int reqWidth, int reqHeight) {
+        if (TextUtils.isEmpty(pathName) || reqHeight <= 0 || reqHeight <= 0) {
+            return null;
+        }
         // 第一次解析将inJustDecodeBounds设置为true，来获取图片大小
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
@@ -198,6 +207,9 @@ public class HoverBitmapHelper {
      * @return
      */
     public static void calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        if (options == null || reqHeight <= 0 || reqHeight <= 0) {
+            return;
+        }
         // 源图片的宽度
         int inSampleSize = 1;
         if (options.outWidth > reqWidth && options.outHeight > reqHeight) {
@@ -257,7 +269,7 @@ public class HoverBitmapHelper {
      * @return
      */
     public static Bitmap getRoundedCornerBitmap(Bitmap sourceBitmap, float roundPx) {
-        if (sourceBitmap == null && roundPx < 0) {
+        if (sourceBitmap == null || roundPx < 0 || sourceBitmap.isRecycled()) {
             return null;
         }
 
@@ -301,6 +313,9 @@ public class HoverBitmapHelper {
      * @return
      */
     public static Bitmap getOvalBitmap(Bitmap bitmap) {
+        if (bitmap == null || bitmap.isRecycled()) {
+            return null;
+        }
 
         Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(output);
@@ -338,6 +353,9 @@ public class HoverBitmapHelper {
     }
 
     public static Bitmap byteToBitmap(byte[] bitmapData) {
+        if (bitmapData == null) {
+            return null;
+        }
         Bitmap bitmap = null;
         if (bitmapData != null && bitmapData.length > 0) {
             bitmap = BitmapFactory.decodeByteArray(bitmapData, 0, bitmapData.length);
@@ -358,16 +376,16 @@ public class HoverBitmapHelper {
     }
 
     public static byte[] readImageBitmapByte(ImageView imageView) {
-        byte[] data = null;
         if (imageView == null) {
-            return data;
+            return null;
         }
+        byte[] data = null;
         Drawable drawable = imageView.getDrawable();
         if (drawable instanceof BitmapDrawable) {
             BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
             Bitmap bitmap = bitmapDrawable.getBitmap();
             if (bitmap == null || bitmap.isRecycled()) {
-                return data;
+                return null;
             }
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
             boolean ret = bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
@@ -391,12 +409,21 @@ public class HoverBitmapHelper {
      * @return BitmapDrawable对象
      */
     public static BitmapDrawable readCompressedBitmapDrawable(Resources resources, int resId, int inSampleSize) {
+        if (resources == null || resId <= 0 || inSampleSize <= 0) {
+            return null;
+        }
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = false;
         options.inSampleSize = inSampleSize;
 
-        Bitmap bm = BitmapFactory.decodeStream(resources.openRawResource(resId), null, options);
-        return new BitmapDrawable(resources, bm);
+        BitmapDrawable bitmapDrawable = null;
+        try {
+            Bitmap bm = BitmapFactory.decodeStream(resources.openRawResource(resId), null, options);
+            bitmapDrawable = new BitmapDrawable(resources, bm);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bitmapDrawable;
     }
 
     /**
@@ -407,6 +434,9 @@ public class HoverBitmapHelper {
      * @return BitmapDrawable对象
      */
     public static BitmapDrawable readOptimizedBitmapDrawable(Resources resources, int resId, int inSampleSize) {
+        if (resources == null || resId <= 0 || inSampleSize <= 0) {
+            return null;
+        }
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inPreferredConfig = Bitmap.Config.RGB_565;
         options.inPurgeable = true;
@@ -414,8 +444,14 @@ public class HoverBitmapHelper {
         options.inJustDecodeBounds = false;
         options.inSampleSize = inSampleSize;
 
-        Bitmap bm = BitmapFactory.decodeStream(resources.openRawResource(resId), null, options);
-        return new BitmapDrawable(resources, bm);
+        BitmapDrawable bitmapDrawable = null;
+        try {
+            Bitmap bm = BitmapFactory.decodeStream(resources.openRawResource(resId), null, options);
+            bitmapDrawable = new BitmapDrawable(resources, bm);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bitmapDrawable;
     }
 
     /**
@@ -425,6 +461,9 @@ public class HoverBitmapHelper {
      * @return
      */
     public static Bitmap drawableToBitmap(Drawable drawable) {
+        if (drawable == null) {
+            return null;
+        }
         Bitmap bitmap = Bitmap.createBitmap(
                 drawable.getIntrinsicWidth(),
                 drawable.getIntrinsicHeight(),
@@ -443,6 +482,9 @@ public class HoverBitmapHelper {
      * @param viewGroup 布局等组件
      */
     public static void recycleBitmapDrawable(ViewGroup viewGroup) {
+        if (viewGroup == null) {
+            return;
+        }
         try {
             //回收启动页背景图片
             viewGroup.setBackgroundResource(0);
@@ -484,11 +526,13 @@ public class HoverBitmapHelper {
     }
 
     public static Drawable loadImageFromNetwork(String imageUrl) {
+        if (TextUtils.isEmpty(imageUrl)) {
+            return null;
+        }
         Drawable drawable = null;
         try {
             // 可以在这里通过文件名来判断，是否本地有此图片
-            drawable = Drawable.createFromStream(
-                    new URL(imageUrl).openStream(), "bitmap.jpg");
+            drawable = Drawable.createFromStream(new URL(imageUrl).openStream(), "bitmap.jpg");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -506,14 +550,25 @@ public class HoverBitmapHelper {
      * @lastModify 2015/9/7
      */
     public static Bitmap getImageFromAssetsFile(Context context, String fileName) {
+        if (context == null || TextUtils.isEmpty(fileName)) {
+            return null;
+        }
         Bitmap image = null;
         AssetManager am = context.getAssets();
+        InputStream is = null;
         try {
-            InputStream is = am.open(fileName);
+            is = am.open(fileName);
             image = BitmapFactory.decodeStream(is);
-            is.close();
-        } catch (IOException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         return image;
@@ -585,10 +640,10 @@ public class HoverBitmapHelper {
     }
 
     public static boolean saveImage(Bitmap bitmap, String absPath, String fileName, int quality) {
-        boolean ret = false;
         if (bitmap == null || bitmap.isRecycled() || TextUtils.isEmpty(absPath) || TextUtils.isEmpty(fileName)) {
-            return ret;
+            return false;
         }
+        boolean ret = false;
         FileOutputStream fos = null;
         try {
             File dir = new File(absPath);

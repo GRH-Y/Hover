@@ -145,7 +145,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
                     || HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy) {
                 //下载图片
                 byte[] download = downloadImage(entity.path);
-                if (entity.imageData != null && entity.imageData.length == download.length) {
+                if (entity.imageData != null && download != null && entity.imageData.length == download.length) {
                     //如果下载的图片数据跟缓存的数据大小一致则不需要重新更新缓存和回调
                     return;
                 }
