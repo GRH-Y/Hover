@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
+import android.os.Environment;
 import android.util.Base64;
 import android.util.LruCache;
 
@@ -56,8 +57,8 @@ public class HoverCacheManger {
         };
 
         if (context != null) {
-            File dir = context.getExternalCacheDir();
-            if (dir != null) {
+            String dir = getFileCachePath(context);
+            if (StringEnvoy.isNotEmpty(dir)) {
                 mAppCacheDir = new File(dir, sCachePath);
                 boolean exists = mAppCacheDir.exists();
                 if (!exists) {
@@ -69,6 +70,32 @@ public class HoverCacheManger {
                 }
             }
         }
+    }
+
+    /**
+     * 获取app缓存路径
+     *
+     * @return
+     */
+    public String getFileCachePath(Context context) {
+        String cachePath = null;
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState()) || !Environment.isExternalStorageRemovable()) {
+            //外部存储可用
+            File file = context.getExternalFilesDir(null);
+            if (file != null) {
+                cachePath = file.getPath();
+            }
+        } else {
+            //外部存储不可用
+            File file = context.getFilesDir();
+            if (file != null) {
+                cachePath = file.getPath();
+            }
+        }
+        if (StringEnvoy.isEmpty(cachePath)) {
+            cachePath = "/sdcard/Android/data/" + context.getPackageName();
+        }
+        return cachePath;
     }
 
     /**
@@ -181,6 +208,7 @@ public class HoverCacheManger {
 
     /**
      * 根据路径获取bitmap，先从内存缓存拿，没有则取磁盘获取
+     *
      * @param path 图片路径
      * @return
      */

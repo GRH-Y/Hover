@@ -101,6 +101,9 @@ public class HoverImageLoadTask extends BaseLoopTask {
             try {
                 entity.bitmap = HoverBitmapHelper.decodeBitmap(filePath, imageSize.width, imageSize.height);
             } catch (Throwable e) {
+                if (e instanceof OutOfMemoryError) {
+                    HoverCacheManger.getInstance().clearCacheImage();
+                }
                 entity.imageData = null;
                 e.printStackTrace();
             }
@@ -142,7 +145,7 @@ public class HoverImageLoadTask extends BaseLoopTask {
             //根据策略来决定是否请求网络
             if ((HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.imageData == null)
                     || HoverLoadPolicy.ONLY_NET == entity.loadPolicy
-                    || HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy) {
+                    || HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.path.startsWith(TAG_HTTP)) {
                 //下载图片
                 byte[] download = downloadImage(entity.path);
                 if (entity.imageData != null && download != null && entity.imageData.length == download.length) {
@@ -154,7 +157,6 @@ public class HoverImageLoadTask extends BaseLoopTask {
                 HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
                 sendHandlerMsg(entity);
             }
-
             return;
         }
 
@@ -164,27 +166,34 @@ public class HoverImageLoadTask extends BaseLoopTask {
             entity.loadPolicy = HoverLoadPolicy.ALL;
         }
 
-        if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
-            //获取缓存数据
-            entity.bitmap = HoverCacheManger.getInstance().getBitmapFromCache(key);
-            entity.imageData = HoverCacheManger.getInstance().getBitmapForByte(key);
-            if (entity.bitmap == null) {
-                String path = HoverCacheManger.getInstance().getBitmapFromFile(key);
-                if (path != null) {
-                    entity.bitmap = HoverBitmapHelper.decodeBitmap(path, imageSize.width, imageSize.height);
-                }
-            }
-            if (entity.bitmap != null) {
-                sendHandlerMsg(entity);
-            }
-            if (HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.bitmap != null
-                    || HoverLoadPolicy.ONLY_CACHE == entity.loadPolicy) {
-                return;
-            }
-        }
 
         boolean isNeedSendMeg = true;
         if (entity.path != null && entity.path.startsWith(TAG_HTTP)) {
+            if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
+                //获取缓存数据
+                entity.bitmap = HoverCacheManger.getInstance().getBitmapFromCache(key);
+                entity.imageData = HoverCacheManger.getInstance().getBitmapForByte(key);
+                if (entity.bitmap == null) {
+                    String path = HoverCacheManger.getInstance().getBitmapFromFile(key);
+                    if (path != null) {
+                        try {
+                            entity.bitmap = HoverBitmapHelper.decodeBitmap(path, imageSize.width, imageSize.height);
+                        } catch (Throwable e) {
+                            if (e instanceof OutOfMemoryError) {
+                                HoverCacheManger.getInstance().clearCacheImage();
+                            }
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                if (entity.bitmap != null) {
+                    sendHandlerMsg(entity);
+                }
+                if (HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.bitmap != null || HoverLoadPolicy.ONLY_CACHE == entity.loadPolicy) {
+                    return;
+                }
+            }
+
             byte[] downloadData = downloadImage(entity.path);
             //如果下载图片失败
             if (downloadData == null) {
