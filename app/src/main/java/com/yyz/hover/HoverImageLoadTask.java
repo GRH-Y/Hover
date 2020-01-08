@@ -77,8 +77,20 @@ public class HoverImageLoadTask extends BaseLoopTask {
             }
             connection.setConnectTimeout(timeout);
             connection.setReadTimeout(timeout);
-            InputStream is = connection.getInputStream();
-            data = IoEnvoy.tryRead(is);
+            connection.setRequestMethod("GET");
+            connection.setUseCaches(false);
+            connection.setRequestProperty("User-Agent", "Hover");
+            //此处为暴力方法设置接受所有类型，以此来防范返回415;
+            connection.setRequestProperty("Accept", "*/*");
+            connection.setRequestProperty("Accept-Encoding", "gzip, deflate");
+
+            String redirect = connection.getHeaderField("Location");
+            if (redirect != null) {
+                data = downloadImage(redirect);
+            } else {
+                InputStream is = connection.getInputStream();
+                data = IoEnvoy.tryRead(is);
+            }
         } catch (Throwable e) {
             e.printStackTrace();
         } finally {
@@ -135,6 +147,10 @@ public class HoverImageLoadTask extends BaseLoopTask {
             return;
         }
 
+        if (entity.loadPolicy == null && key != null) {
+            entity.loadPolicy = HoverLoadPolicy.ALL;
+        }
+
         //如果没有控件则只进行下载
         if (entity.view == null) {
             //获取缓存的图片
@@ -143,18 +159,17 @@ public class HoverImageLoadTask extends BaseLoopTask {
                 sendHandlerMsg(entity);
             }
             //根据策略来决定是否请求网络
-            if ((HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.imageData == null)
-                    || HoverLoadPolicy.ONLY_NET == entity.loadPolicy
-                    || HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.path.startsWith(TAG_HTTP)) {
+            if (HoverLoadPolicy.ONLY_CACHE != entity.loadPolicy && entity.path.startsWith(TAG_HTTP)) {
                 //下载图片
                 byte[] download = downloadImage(entity.path);
                 if (entity.imageData != null && download != null && entity.imageData.length == download.length) {
                     //如果下载的图片数据跟缓存的数据大小一致则不需要重新更新缓存和回调
                     return;
                 }
-
                 entity.imageData = download;
-                HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
+                if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
+                    HoverCacheManger.getInstance().saveImageToFile(key, entity.imageData);
+                }
                 sendHandlerMsg(entity);
             }
             return;
@@ -162,10 +177,6 @@ public class HoverImageLoadTask extends BaseLoopTask {
 
         //获取控件的大小
         HoverEntityImageSize imageSize = getImageViewWidth(entity.view);
-        if (entity.loadPolicy == null && key != null) {
-            entity.loadPolicy = HoverLoadPolicy.ALL;
-        }
-
 
         boolean isNeedSendMeg = true;
         if (entity.path != null && entity.path.startsWith(TAG_HTTP)) {
