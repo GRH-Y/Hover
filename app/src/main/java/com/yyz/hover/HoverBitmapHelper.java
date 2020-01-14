@@ -121,6 +121,48 @@ public class HoverBitmapHelper {
     }
 
     /**
+     * 压缩到指定的大小
+     * @param imgPath
+     * @param targetKb
+     * @return
+     */
+    public static byte[] compressTargetKB(String imgPath, int targetKb) {
+        targetKb = targetKb * 1024;
+        if (TextUtils.isEmpty(imgPath)) {
+            return null;
+        }
+        int quality = 100;
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inPreferredConfig = Bitmap.Config.RGB_565;
+        byte[] photoData = null;
+        try {
+            Bitmap target = BitmapFactory.decodeFile(imgPath, options);
+            do {
+                target.compress(Bitmap.CompressFormat.JPEG, quality, stream);
+                quality -= 10;
+                if (stream.size() > targetKb) {
+                    stream.reset();
+                } else {
+                    break;
+                }
+            } while (true);
+            target.recycle();
+            photoData = stream.toByteArray();
+        } catch (Throwable e) {
+            System.gc();
+            e.printStackTrace();
+        } finally {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return photoData;
+    }
+
+    /**
      * 根据计算的inSampleSize，得到压缩后图片
      *
      * @param data      图片数据
