@@ -25,6 +25,7 @@ import task.executor.TaskContainer;
 import task.executor.joggle.ILoopTaskExecutor;
 import util.IoEnvoy;
 import util.SpeedReflex;
+import util.StringEnvoy;
 
 public class HoverImageLoadTask extends BaseLoopTask {
 
@@ -138,8 +139,8 @@ public class HoverImageLoadTask extends BaseLoopTask {
         }
 
         String key = null;
-        if (entity.path != null) {
-            key = HoverCacheManger.getInstance().getUrlBase64(entity.path.getBytes());
+        if (StringEnvoy.isNotEmpty(entity.path)) {
+            key = HoverCacheManger.getInstance().getUrlConvertKey(entity.path.getBytes());
         }
         if (key == null && entity.imageData == null) {
             //显示错误rid图片

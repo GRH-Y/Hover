@@ -12,6 +12,9 @@ import android.util.LruCache;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import log.LogDog;
 import storage.FileHelper;
@@ -26,6 +29,7 @@ public class HoverCacheManger {
      * 图片缓存
      */
     private LruCache<String, Bitmap> mLruCache;
+    private MessageDigest messageDigest;
 
     private HoverCacheManger() {
     }
@@ -69,6 +73,12 @@ public class HoverCacheManger {
                     LogDog.e("Cache file creation failed !!!");
                 }
             }
+        }
+        // 生成一个MD5加密计算摘要
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
         }
     }
 
@@ -180,7 +190,7 @@ public class HoverCacheManger {
 
     protected File isHasDisk(String path) {
         File isHas = null;
-        String key = getUrlBase64(path.getBytes());
+        String key = getUrlConvertKey(path.getBytes());
         if (key == null) {
             return null;
         }
@@ -191,7 +201,7 @@ public class HoverCacheManger {
     }
 
     protected boolean isHasLoad(String path) {
-        String key = getUrlBase64(path.getBytes());
+        String key = getUrlConvertKey(path.getBytes());
         if (key == null) {
             return false;
         }
@@ -213,7 +223,7 @@ public class HoverCacheManger {
      * @return
      */
     protected Bitmap getBitmapFromPath(String path) {
-        String key = getUrlBase64(path.getBytes());
+        String key = getUrlConvertKey(path.getBytes());
         Bitmap bitmap = getBitmapFromCache(key);
         if (bitmap == null) {
             if (mAppCacheDir != null && mAppCacheDir.exists() && mAppCacheDir.isDirectory()) {
@@ -269,13 +279,11 @@ public class HoverCacheManger {
         return null;
     }
 
-
-    public String getUrlBase64(byte[] data) {
-        if (data == null) {
+    public String getUrlConvertKey(byte[] data) {
+        if (data == null || data.length == 0) {
             return null;
         }
-        byte[] base64 = Base64.encode(data, Base64.URL_SAFE);
-        String strBase64 = new String(base64).replaceAll("=", "");
-        return strBase64.replaceAll("\n", "");
+        messageDigest.update(data);
+        return new BigInteger(1, messageDigest.digest()).toString(16);
     }
 }

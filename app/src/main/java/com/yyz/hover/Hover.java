@@ -74,21 +74,21 @@ public class Hover {
 
     public void addImageToCache(String path, Bitmap bitmap) {
         if (StringEnvoy.isNotEmpty(path) && bitmap != null && !bitmap.isRecycled()) {
-            String key = HoverCacheManger.getInstance().getUrlBase64(path.getBytes());
+            String key = HoverCacheManger.getInstance().getUrlConvertKey(path.getBytes());
             HoverCacheManger.getInstance().addBitmapToCache(key, bitmap);
         }
     }
 
     public void getImageForCache(String path) {
         if (StringEnvoy.isNotEmpty(path)) {
-            String key = HoverCacheManger.getInstance().getUrlBase64(path.getBytes());
+            String key = HoverCacheManger.getInstance().getUrlConvertKey(path.getBytes());
             HoverCacheManger.getInstance().getBitmapFromCache(key);
         }
     }
 
     public void removerImageForCache(String path) {
         if (StringEnvoy.isNotEmpty(path)) {
-            String key = HoverCacheManger.getInstance().getUrlBase64(path.getBytes());
+            String key = HoverCacheManger.getInstance().getUrlConvertKey(path.getBytes());
             HoverCacheManger.getInstance().removerForKey(key);
         }
     }
@@ -182,6 +182,10 @@ public class Hover {
         loadImage(path, errorImageRid, view, null, null, null);
     }
 
+    public void loadImage(String path, @DrawableRes int errorImageRid, ImageView view, HoverLoadPolicy networkPolicy) {
+        loadImage(path, errorImageRid, view, networkPolicy, null, null);
+    }
+
     public void loadImage(String path, @DrawableRes int errorImageRid, ImageView view, IHoverLoadResultListener listener) {
         loadImage(path, errorImageRid, view, null, null, listener);
     }
@@ -207,13 +211,8 @@ public class Hover {
                            HoverLoadPolicy networkPolicy, IHoverLoadHandleListener handleListener,
                            IHoverLoadResultListener resultListener) {
 
-        if ((data == null && path == null) || (data != null && view == null)) {
-            LogDog.e("==> loadImage() data or path Can't be empty ! ");
-            return;
-        }
-
-        if (!path.startsWith(HoverImageLoadTask.TAG_HTTP) && !path.startsWith(HoverImageLoadTask.TAG_FILE)) {
-            LogDog.e("==> loadImage path illegal address ! " + path);
+        if (data == null && StringEnvoy.isEmpty(path) && view == null) {
+            LogDog.e("data ,path or view is null !!!");
             return;
         }
 
