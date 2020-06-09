@@ -51,7 +51,7 @@ dependencies {
 //打jar包
 task makeJar(type: Copy) {
     delete 'build/jarLibs/' + 'Hover_v' + javVersion + '.jar'
-    from('build/intermediates/packaged-classes/releasse/')
+    from('build/intermediates/packaged-classes/release/')
     into('build/jarLibs/')
     include('classes.jar')
     rename('classes.jar', 'Hover_v' + javVersion + '.jar')

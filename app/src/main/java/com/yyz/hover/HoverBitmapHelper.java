@@ -385,10 +385,15 @@ public class HoverBitmapHelper {
         }
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-        byte[] data = stream.toByteArray();
+        byte[] data = null;
+        try {
+            data = stream.toByteArray();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
         try {
             stream.close();
-        } catch (IOException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
         return data;

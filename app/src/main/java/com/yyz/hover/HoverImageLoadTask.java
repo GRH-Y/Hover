@@ -89,8 +89,14 @@ public class HoverImageLoadTask extends BaseLoopTask {
             if (redirect != null) {
                 data = downloadImage(redirect);
             } else {
+                int length = connection.getContentLength();
                 InputStream is = connection.getInputStream();
-                data = IoEnvoy.tryRead(is);
+                if (length > 0) {
+                    data = new byte[length];
+                    IoEnvoy.readToFull(is, data);
+                } else {
+                    data = IoEnvoy.tryRead(is);
+                }
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -184,12 +190,14 @@ public class HoverImageLoadTask extends BaseLoopTask {
             if (entity.loadPolicy != HoverLoadPolicy.ONLY_NET) {
                 //获取缓存数据
                 entity.bitmap = HoverCacheManger.getInstance().getBitmapFromCache(key);
-                entity.imageData = HoverCacheManger.getInstance().getBitmapForByte(key);
                 if (entity.bitmap == null) {
                     String path = HoverCacheManger.getInstance().getBitmapFromFile(key);
                     if (path != null) {
                         try {
                             entity.bitmap = HoverBitmapHelper.decodeBitmap(path, imageSize.width, imageSize.height);
+                            if (entity.bitmap != null) {
+                                HoverCacheManger.getInstance().addBitmapToCache(key, entity.bitmap);
+                            }
                         } catch (Throwable e) {
                             if (e instanceof OutOfMemoryError) {
                                 HoverCacheManger.getInstance().clearCacheImage();
@@ -198,11 +206,13 @@ public class HoverImageLoadTask extends BaseLoopTask {
                         }
                     }
                 }
+                if ((HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.bitmap != null) || HoverLoadPolicy.ONLY_CACHE == entity.loadPolicy) {
+                    //CACHE_OR_NET 缓存有则不再请求数据，ONLY_CACHE 只读缓存数据
+                    sendHandlerMsg(entity);
+                    return;
+                }
                 if (entity.bitmap != null) {
                     sendHandlerMsg(entity);
-                }
-                if (HoverLoadPolicy.CACHE_OR_NET == entity.loadPolicy && entity.bitmap != null || HoverLoadPolicy.ONLY_CACHE == entity.loadPolicy) {
-                    return;
                 }
             }
 
@@ -212,9 +222,21 @@ public class HoverImageLoadTask extends BaseLoopTask {
                 sendHandlerMsg(entity);
                 return;
             }
-            if (entity.imageData != null && downloadData.length == entity.imageData.length) {
+            long fileLength = 0;
+            try {
+                String cacheFile = HoverCacheManger.getInstance().getBitmapFromFile(key);
+                if (StringEnvoy.isNotEmpty(cacheFile)) {
+                    File file = new File(cacheFile);
+                    fileLength = file.length();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (downloadData.length == fileLength) {
                 //如果图片没有变化则不需要再更新
                 isNeedSendMeg = false;
+                //保存到缓存中
+                HoverCacheManger.getInstance().addBitmapToCache(key, entity.bitmap);
             } else {
                 entity.imageData = downloadData;
                 entity.bitmap = HoverBitmapHelper.decodeBitmap(entity.imageData, imageSize.width, imageSize.height);
@@ -264,28 +286,16 @@ public class HoverImageLoadTask extends BaseLoopTask {
         // Get actual bitmap width
         int width = params.width == ViewGroup.LayoutParams.WRAP_CONTENT ? 0 : imageView.getWidth();
         if (width <= 0) {
-            // Get layout width parameter
-            width = params.width;
-        }
-        if (width <= 0) {
             width = getImageViewFieldValue(imageView, "mMaxWidth");
         }
-        // maxWidth
-        // parameter
         if (width <= 0) {
             width = displayMetrics.widthPixels;
         }
         // Get actual bitmap height
         int height = params.height == ViewGroup.LayoutParams.WRAP_CONTENT ? 0 : imageView.getHeight();
         if (height <= 0) {
-            // Get layout height parameter
-            height = params.height;
-        }
-        if (height <= 0) {
             height = getImageViewFieldValue(imageView, "mMaxHeight");
         }
-        // maxHeight
-        // parameter
         if (height <= 0) {
             height = displayMetrics.heightPixels;
         }
