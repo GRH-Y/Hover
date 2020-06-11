@@ -20,6 +20,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 
+import storage.GZipUtils;
 import task.executor.BaseLoopTask;
 import task.executor.TaskContainer;
 import task.executor.joggle.ILoopTaskExecutor;
@@ -85,10 +86,15 @@ public class HoverImageLoadTask extends BaseLoopTask {
             connection.setRequestProperty("Accept", "*/*");
             connection.setRequestProperty("Accept-Encoding", "gzip, deflate");
 
-            String redirect = connection.getHeaderField("Location");
-            if (redirect != null) {
-                data = downloadImage(redirect);
-            } else {
+            int code = connection.getResponseCode();
+            if (code >= HttpURLConnection.HTTP_MULT_CHOICE && code <= HttpURLConnection.HTTP_USE_PROXY) {
+                String redirect = connection.getHeaderField("Location");
+                if (redirect != null) {
+                    data = downloadImage(redirect);
+                }
+            }
+            if (code == HttpURLConnection.HTTP_OK) {
+                String encode = connection.getHeaderField("Content-Encoding");
                 int length = connection.getContentLength();
                 InputStream is = connection.getInputStream();
                 if (length > 0) {
@@ -96,6 +102,10 @@ public class HoverImageLoadTask extends BaseLoopTask {
                     IoEnvoy.readToFull(is, data);
                 } else {
                     data = IoEnvoy.tryRead(is);
+                }
+                if (StringEnvoy.isNotEmpty(encode) && encode.contains("gzip")) {
+                    byte[] unCompressData = GZipUtils.unCompress(data);
+                    data = unCompressData == null ? data : unCompressData;
                 }
             }
         } catch (Throwable e) {

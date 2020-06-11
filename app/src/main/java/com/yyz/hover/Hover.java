@@ -212,7 +212,7 @@ public class Hover {
                            IHoverLoadResultListener resultListener) {
 
         if (data == null && StringEnvoy.isEmpty(path) && view == null) {
-            LogDog.e("data ,path or view is null !!!");
+            LogDog.w("Hover : data ,path or view is null !!!");
             return;
         }
 
